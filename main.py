@@ -838,6 +838,8 @@ async def get_private_chat(other_user_id: str, user_id: str):
     
     chat_id = get_private_chat_id(user_id, other_user_id)
     return private_chats.get(chat_id, [])[-50:]  # Last 50 messages
+
+
 @app.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str):
     if user_id not in users:
@@ -865,41 +867,41 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
         while True:
             data = await websocket.receive_text()
             message_data = json.loads(data)
-            # Handle messages...
+            
             if message_data.get("type") == "private_message":
                 recipient_id = message_data.get("recipient_id")
                 content = message_data.get("content", "").strip()
                 message_id = message_data.get("message_id", generate_id())
+                
+                if content and recipient_id:
+                    chat_id = get_private_chat_id(user_id, recipient_id)
+                    
+                    # Store message
+                    if chat_id not in private_chats:
+                        private_chats[chat_id] = []
+                    
+                    message = {
+                        "id": message_id,
+                        "sender_id": user_id,
+                        "sender_username": users[user_id]["username"],
+                        "content": content,
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "message_type": "text"
+                    }
+                    
+                    private_chats[chat_id].append(message)
+                    
+                    # Send to both users
+                    message_payload = {
+                        "type": "private_message",
+                        "chat_id": chat_id,
+                        "message": message
+                    }
+                    
+                    await websocket.send_text(json.dumps(message_payload))
+                    if recipient_id in connections:
+                        await connections[recipient_id].send_text(json.dumps(message_payload))
             
-            if content and recipient_id:
-                chat_id = get_private_chat_id(user_id, recipient_id)
-                
-                # Store message
-                if chat_id not in private_chats:
-                    private_chats[chat_id] = []
-                
-                message = {
-                    "id": message_id,
-                    "sender_id": user_id,
-                    "sender_username": users[user_id]["username"],
-                    "content": content,
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "message_type": "text"
-                }
-                
-                private_chats[chat_id].append(message)
-                
-                # Send to both users
-                message_payload = {
-                    "type": "private_message",
-                    "chat_id": chat_id,
-                    "message": message
-                }
-                
-                await websocket.send_text(json.dumps(message_payload))
-                if recipient_id in connections:
-                    await connections[recipient_id].send_text(json.dumps(message_payload))
-        
             elif message_data.get("type") == "group_message":
                 group_id = message_data.get("group_id")
                 content = message_data.get("content", "").strip()
@@ -934,9 +936,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
                         for member_id in group["members"]:
                             if member_id in connections:
                                 await connections[member_id].send_text(json.dumps(message_payload))
-        
+            
     except WebSocketDisconnect:
-        # FIX: Remove user completely when they disconnect
+        # Remove user completely when they disconnect
         username = users[user_id]["username"] if user_id in users else "Unknown"
         print(f"User {username} disconnected - freeing username")
         
