@@ -646,39 +646,145 @@
 #     port = int(os.environ.get("PORT", 8000))
 #     uvicorn.run(app, host="0.0.0.0", port=port)
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
+import uuid
+from datetime import datetime
+from typing import Dict
 
 app = FastAPI()
 
-# Simple storage
-connections = {}
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Simple in-memory storage
+users: Dict[str, dict] = {}
+connections: Dict[str, WebSocket] = {}
+messages: Dict[str, list] = {}
+
+def generate_id():
+    return str(uuid.uuid4())
 
 @app.get("/")
 async def root():
-    return {"message": "Chat App Running!"}
+    return {"message": "Anonymous Chat App", "users_online": len(connections)}
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "connections": len(connections)}
+
+@app.post("/api/create-user")
+async def create_user(data: dict):
+    username = data.get("username", "").strip()
+    
+    if not username or len(username) < 2 or len(username) > 20:
+        raise HTTPException(status_code=400, detail="Username must be 2-20 characters")
+    
+    # Check if username exists
+    for user in users.values():
+        if user["username"].lower() == username.lower():
+            raise HTTPException(status_code=409, detail="Username already taken")
+    
+    user_id = generate_id()
+    users[user_id] = {
+        "id": user_id,
+        "username": username,
+        "connected_at": datetime.utcnow().isoformat(),
+        "last_seen": datetime.utcnow().isoformat()
+    }
+    
+    return {"user_id": user_id, "username": username}
+
+@app.get("/api/users")
+async def get_online_users():
+    online_users = []
+    for user in users.values():
+        if user["id"] in connections:
+            online_users.append({
+                "id": user["id"],
+                "username": user["username"],
+                "last_seen": user["last_seen"],
+                "is_typing": False,
+                "typing_in": None
+            })
+    return online_users
 
 @app.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    if user_id not in users:
+        await websocket.close(code=4001, reason="Invalid user")
+        return
+    
     await websocket.accept()
     connections[user_id] = websocket
+    
+    # Notify others user is online
+    for other_user_id, ws in connections.items():
+        if other_user_id != user_id:
+            try:
+                await ws.send_text(json.dumps({
+                    "type": "user_online",
+                    "user": {
+                        "id": user_id,
+                        "username": users[user_id]["username"]
+                    }
+                }))
+            except:
+                pass
     
     try:
         while True:
             data = await websocket.receive_text()
-            # Echo back for now
-            await websocket.send_text(f"Echo: {data}")
+            message_data = json.loads(data)
+            
+            # Handle different message types
+            if message_data.get("type") == "private_message":
+                recipient_id = message_data.get("recipient_id")
+                content = message_data.get("content", "").strip()
+                
+                if content and recipient_id in connections:
+                    # Send to recipient
+                    await connections[recipient_id].send_text(json.dumps({
+                        "type": "private_message",
+                        "sender_id": user_id,
+                        "sender_username": users[user_id]["username"],
+                        "content": content,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }))
+                    
+                    # Echo back to sender
+                    await websocket.send_text(json.dumps({
+                        "type": "private_message",
+                        "sender_id": user_id,
+                        "sender_username": "You",
+                        "content": content,
+                        "timestamp": datetime.utcnow().isoformat()
+                    }))
+            
     except WebSocketDisconnect:
         if user_id in connections:
             del connections[user_id]
+        
+        # Notify others user is offline
+        for other_user_id, ws in connections.items():
+            try:
+                await ws.send_text(json.dumps({
+                    "type": "user_offline",
+                    "user_id": user_id
+                }))
+            except:
+                pass
 
-# Serve static files
+# Serve static files (your frontend)
 if os.path.exists("static"):
     app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
