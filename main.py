@@ -646,121 +646,35 @@
 #     port = int(os.environ.get("PORT", 8000))
 #     uvicorn.run(app, host="0.0.0.0", port=port)
 
-
-# main.py - Simplified for Render deployment
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Dict, List, Optional
-import json
-import uuid
-import asyncio
 import os
-from datetime import datetime
+import json
 
 app = FastAPI()
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Simple storage
+connections = {}
 
-# Simple in-memory storage (we'll add database later)
-users: Dict[str, dict] = {}
-connections: Dict[str, WebSocket] = {}
-messages: Dict[str, List[dict]] = {}
-groups: Dict[str, dict] = {}
+@app.get("/")
+async def root():
+    return {"message": "Chat App Running!"}
 
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
-        
-    async def connect(self, websocket: WebSocket, user_id: str):
-        await websocket.accept()
-        self.active_connections[user_id] = websocket
-        
-    def disconnect(self, user_id: str):
-        if user_id in self.active_connections:
-            del self.active_connections[user_id]
-            
-    async def send_personal_message(self, message: dict, user_id: str):
-        if user_id in self.active_connections:
-            try:
-                await self.active_connections[user_id].send_text(json.dumps(message))
-                return True
-            except:
-                self.disconnect(user_id)
-                return False
-        return False
-
-manager = ConnectionManager()
-
-def generate_id():
-    return str(uuid.uuid4())
-
-# API Routes
 @app.get("/health")
-async def health_check():
-    return {"status": "healthy", "timestamp": datetime.utcnow()}
-
-@app.post("/api/create-user")
-async def create_user(data: dict):
-    username = data.get("username", "").strip()
-    
-    if not username or len(username) < 2 or len(username) > 20:
-        return {"error": "Invalid username"}
-    
-    # Check if username exists
-    for user in users.values():
-        if user["username"].lower() == username.lower():
-            return {"error": "Username already taken"}
-    
-    user_id = generate_id()
-    users[user_id] = {
-        "id": user_id,
-        "username": username,
-        "connected_at": datetime.utcnow().isoformat(),
-        "last_seen": datetime.utcnow().isoformat()
-    }
-    
-    return {"user_id": user_id, "username": username}
-
-@app.get("/api/users")
-async def get_online_users():
-    online_users = []
-    for user in users.values():
-        if user["id"] in connections:
-            online_users.append({
-                "id": user["id"],
-                "username": user["username"],
-                "last_seen": user["last_seen"],
-                "is_typing": False,
-                "typing_in": None
-            })
-    return online_users
+async def health():
+    return {"status": "ok"}
 
 @app.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str):
-    if user_id not in users:
-        await websocket.close(code=4001, reason="Invalid user")
-        return
-    
-    await manager.connect(websocket, user_id)
+    await websocket.accept()
     connections[user_id] = websocket
     
     try:
         while True:
             data = await websocket.receive_text()
-            message_data = json.loads(data)
-            # Handle messages here
-            
+            # Echo back for now
+            await websocket.send_text(f"Echo: {data}")
     except WebSocketDisconnect:
-        manager.disconnect(user_id)
         if user_id in connections:
             del connections[user_id]
 
