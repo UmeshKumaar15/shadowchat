@@ -11,6 +11,10 @@ import time
 from datetime import datetime, timedelta
 import hashlib
 import os
+from database import (
+    get_db, get_redis, create_tables,
+    User as DBUser, Group as DBGroup, GroupMember, Message as DBMessage
+)
 
 app = FastAPI()
 
@@ -625,10 +629,12 @@ async def handle_stop_typing(user_id: str, data: dict):
 # Periodic cleanup task
 @app.on_event("startup")
 async def startup_event():
+    await create_tables()  # This creates the database tables
+    
     async def periodic_cleanup():
         while True:
             await asyncio.sleep(300)  # Run every 5 minutes
-            cleanup_inactive_users()
+            # Add cleanup logic here if needed
     
     asyncio.create_task(periodic_cleanup())
 
