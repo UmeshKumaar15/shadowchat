@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Anonymous Chat</title>
     <style>
         * {
@@ -646,94 +645,6 @@
 
             .sidebar {
                 width: 100%;
-            }
-        }
-            
-        /* Android Mobile Fixes */
-        @media screen and (max-width: 768px) {
-            /* Prevent zoom on input focus (Android issue) */
-            input, textarea, select {
-                font-size: 16px !important;
-                transform-origin: left top;
-                transform: scale(1);
-            }
-            
-            /* Fix Android viewport issues */
-            .app {
-                width: 100vw;
-                height: 100vh;
-                height: -webkit-fill-available; /* iOS Safari fix */
-                overflow: hidden;
-            }
-            
-            /* Android keyboard adjustment */
-            .message-input-container {
-                position: sticky;
-                bottom: 0;
-                padding: 0.5rem;
-                background: var(--bg-secondary);
-            }
-            
-            /* Android touch target sizes */
-            .tab, .btn, .send-btn, .user-item, .group-item {
-                min-height: 44px; /* Android minimum touch target */
-                min-width: 44px;
-            }
-            
-            /* Android scroll fixes */
-            .messages {
-                -webkit-overflow-scrolling: touch;
-                scroll-behavior: smooth;
-            }
-            
-            /* Android safe area (notch support) */
-            .sidebar-header {
-                padding-top: max(1rem, env(safe-area-inset-top));
-            }
-            
-            /* Fix Android Chrome address bar issues */
-            .chat-area {
-                height: 100vh;
-                height: -webkit-fill-available;
-            }
-        }
-
-        /* Specific Android Chrome fixes */
-        @supports (-webkit-touch-callout: none) {
-            .app {
-                height: -webkit-fill-available;
-            }
-        }
-
-        /* Android landscape mode */
-        @media screen and (max-width: 768px) and (orientation: landscape) {
-            .sidebar {
-                width: 300px; /* Smaller sidebar in landscape */
-            }
-            
-            .message-input {
-                font-size: 14px; /* Prevent zoom in landscape */
-            }
-        }
-
-        /* Android specific fixes */
-        @media screen and (max-width: 480px) {
-            /* Very small screens (Android phones) */
-            .tabs {
-                font-size: 0.75rem;
-            }
-            
-            .tab-text {
-                display: none; /* Hide text, show only icons on small screens */
-            }
-            
-            .sidebar {
-                width: 100%;
-            }
-            
-            .modal-content {
-                margin: 1rem;
-                width: calc(100% - 2rem);
             }
         }
     </style>
