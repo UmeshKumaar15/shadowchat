@@ -645,6 +645,8 @@
 #     import uvicorn
 #     port = int(os.environ.get("PORT", 8000))
 #     uvicorn.run(app, host="0.0.0.0", port=port)
+
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -652,12 +654,12 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
 import uuid
+import hashlib
 from datetime import datetime
 from typing import Dict
 
 app = FastAPI()
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -666,15 +668,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Simple in-memory storage
+# In-memory storage
 users: Dict[str, dict] = {}
 connections: Dict[str, WebSocket] = {}
+groups: Dict[str, dict] = {}
 messages: Dict[str, list] = {}
+private_chats: Dict[str, list] = {}
 
 def generate_id():
     return str(uuid.uuid4())
 
-# API routes
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def get_private_chat_id(user1_id: str, user2_id: str) -> str:
+    return f"chat_{'_'.join(sorted([user1_id, user2_id]))}"
+
+# API Routes
 @app.get("/health")
 async def health():
     return {"status": "ok", "connections": len(connections)}
@@ -686,7 +696,6 @@ async def create_user(data: dict):
     if not username or len(username) < 2 or len(username) > 20:
         raise HTTPException(status_code=400, detail="Username must be 2-20 characters")
     
-    # Check if username exists
     for user in users.values():
         if user["username"].lower() == username.lower():
             raise HTTPException(status_code=409, detail="Username already taken")
@@ -714,6 +723,121 @@ async def get_online_users():
                 "typing_in": None
             })
     return online_users
+
+@app.get("/api/groups")
+async def get_groups():
+    group_list = []
+    for group in groups.values():
+        group_list.append({
+            "id": group["id"],
+            "name": group["name"],
+            "description": group.get("description", ""),
+            "type": group["type"],
+            "member_count": len(group.get("members", [])),
+            "has_password": bool(group.get("password_hash")),
+            "created_at": group["created_at"]
+        })
+    return sorted(group_list, key=lambda x: x["created_at"], reverse=True)
+
+@app.post("/api/create-group")
+async def create_group(data: dict):
+    user_id = data.get("user_id")
+    name = data.get("name", "").strip()
+    description = data.get("description", "").strip()
+    group_type = data.get("type", "public")
+    password = data.get("password", "").strip() if data.get("password") else None
+    
+    if user_id not in users:
+        raise HTTPException(status_code=401, detail="Invalid user")
+    
+    if not name or len(name) < 2 or len(name) > 50:
+        raise HTTPException(status_code=400, detail="Group name must be 2-50 characters")
+    
+    group_id = generate_id()
+    groups[group_id] = {
+        "id": group_id,
+        "name": name,
+        "description": description,
+        "type": group_type,
+        "password_hash": hash_password(password) if password else None,
+        "creator_id": user_id,
+        "members": [user_id],
+        "created_at": datetime.utcnow().isoformat(),
+        "last_activity": datetime.utcnow().isoformat()
+    }
+    
+    # Initialize group messages
+    messages[group_id] = [{
+        "id": generate_id(),
+        "sender_id": "system",
+        "sender_username": "System",
+        "content": f"{users[user_id]['username']} created the group",
+        "timestamp": datetime.utcnow().isoformat(),
+        "message_type": "system"
+    }]
+    
+    return {"group_id": group_id}
+
+@app.post("/api/join-group")
+async def join_group(data: dict):
+    user_id = data.get("user_id")
+    group_id = data.get("group_id")
+    password = data.get("password", "")
+    
+    if user_id not in users:
+        raise HTTPException(status_code=401, detail="Invalid user")
+    
+    if group_id not in groups:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    group = groups[group_id]
+    
+    if user_id in group.get("members", []):
+        return {"success": True, "message": "Already a member"}
+    
+    # Check password for private groups
+    if group["type"] == "private" and group.get("password_hash"):
+        if not password or hash_password(password) != group["password_hash"]:
+            raise HTTPException(status_code=403, detail="Incorrect password")
+    
+    group["members"].append(user_id)
+    
+    # Add system message
+    if group_id not in messages:
+        messages[group_id] = []
+    
+    messages[group_id].append({
+        "id": generate_id(),
+        "sender_id": "system",
+        "sender_username": "System",
+        "content": f"{users[user_id]['username']} joined the group",
+        "timestamp": datetime.utcnow().isoformat(),
+        "message_type": "system"
+    })
+    
+    return {"success": True}
+
+@app.get("/api/group/{group_id}/messages")
+async def get_group_messages(group_id: str, user_id: str):
+    if user_id not in users:
+        raise HTTPException(status_code=401, detail="Invalid user")
+    
+    if group_id not in groups:
+        raise HTTPException(status_code=404, detail="Group not found")
+    
+    group = groups[group_id]
+    if user_id not in group.get("members", []):
+        raise HTTPException(status_code=403, detail="Not a member")
+    
+    return messages.get(group_id, [])[-100:]  # Last 100 messages
+
+@app.get("/api/private-chat/{other_user_id}")
+async def get_private_chat(other_user_id: str, user_id: str):
+    if user_id not in users or other_user_id not in users:
+        raise HTTPException(status_code=401, detail="Invalid user")
+    
+    chat_id = get_private_chat_id(user_id, other_user_id)
+    return private_chats.get(chat_id, [])[-50:]  # Last 50 messages
 
 @app.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str):
@@ -743,29 +867,74 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
             data = await websocket.receive_text()
             message_data = json.loads(data)
             
-            # Handle different message types
             if message_data.get("type") == "private_message":
                 recipient_id = message_data.get("recipient_id")
                 content = message_data.get("content", "").strip()
+                message_id = message_data.get("message_id", generate_id())
                 
-                if content and recipient_id in connections:
-                    # Send to recipient
-                    await connections[recipient_id].send_text(json.dumps({
-                        "type": "private_message",
+                if content and recipient_id:
+                    chat_id = get_private_chat_id(user_id, recipient_id)
+                    
+                    # Store message
+                    if chat_id not in private_chats:
+                        private_chats[chat_id] = []
+                    
+                    message = {
+                        "id": message_id,
                         "sender_id": user_id,
                         "sender_username": users[user_id]["username"],
                         "content": content,
-                        "timestamp": datetime.utcnow().isoformat()
-                    }))
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "message_type": "text"
+                    }
                     
-                    # Echo back to sender
-                    await websocket.send_text(json.dumps({
+                    private_chats[chat_id].append(message)
+                    
+                    # Send to both users
+                    message_payload = {
                         "type": "private_message",
-                        "sender_id": user_id,
-                        "sender_username": "You",
-                        "content": content,
-                        "timestamp": datetime.utcnow().isoformat()
-                    }))
+                        "chat_id": chat_id,
+                        "message": message
+                    }
+                    
+                    await websocket.send_text(json.dumps(message_payload))
+                    if recipient_id in connections:
+                        await connections[recipient_id].send_text(json.dumps(message_payload))
+            
+            elif message_data.get("type") == "group_message":
+                group_id = message_data.get("group_id")
+                content = message_data.get("content", "").strip()
+                message_id = message_data.get("message_id", generate_id())
+                
+                if content and group_id in groups:
+                    group = groups[group_id]
+                    
+                    if user_id in group.get("members", []):
+                        # Store message
+                        if group_id not in messages:
+                            messages[group_id] = []
+                        
+                        message = {
+                            "id": message_id,
+                            "sender_id": user_id,
+                            "sender_username": users[user_id]["username"],
+                            "content": content,
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "message_type": "text"
+                        }
+                        
+                        messages[group_id].append(message)
+                        
+                        # Send to all group members
+                        message_payload = {
+                            "type": "group_message",
+                            "group_id": group_id,
+                            "message": message
+                        }
+                        
+                        for member_id in group["members"]:
+                            if member_id in connections:
+                                await connections[member_id].send_text(json.dumps(message_payload))
             
     except WebSocketDisconnect:
         if user_id in connections:
@@ -781,12 +950,10 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
             except:
                 pass
 
-# Serve the main chat app
 @app.get("/")
 async def serve_frontend():
     return FileResponse("static/index.html")
 
-# Serve static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 if __name__ == "__main__":
