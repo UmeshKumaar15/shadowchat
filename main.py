@@ -629,12 +629,11 @@ async def handle_stop_typing(user_id: str, data: dict):
 # Periodic cleanup task
 @app.on_event("startup")
 async def startup_event():
-    await create_tables()  # This creates the database tables
+    create_tables()  # Remove await since it's now sync
     
     async def periodic_cleanup():
         while True:
-            await asyncio.sleep(300)  # Run every 5 minutes
-            # Add cleanup logic here if needed
+            await asyncio.sleep(300)
     
     asyncio.create_task(periodic_cleanup())
 
