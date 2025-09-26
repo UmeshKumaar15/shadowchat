@@ -467,3 +467,189 @@ body::before {
 .chat-main-area {
   z-index: 0;
 }
+
+/* ===== SIDEBAR VISIBILITY & PROFILE IMAGE FIXES ===== */
+/* Add this to your existing index.css - don't replace anything, just add at the end */
+
+/* Fix sidebar container to ensure full visibility */
+.chat-sidebar {
+  @apply w-[280px] min-w-[280px] max-w-[280px] h-screen overflow-hidden bg-discord-dark border-r border-discord-border flex flex-col;
+  flex-shrink: 0 !important;
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure sidebar content is fully visible */
+.chat-sidebar-content {
+  @apply h-full overflow-y-auto overflow-x-hidden bg-discord-dark;
+  scrollbar-width: thin;
+  scrollbar-color: #40444b #2f3136;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+/* ===== REMOVE SCROLLBARS FROM PROFILE IMAGES ===== */
+
+/* Target all profile/avatar images and containers */
+.user-list-item img,
+.user-list-item [class*="avatar"],
+.user-list-item [class*="profile"],
+.avatar-container,
+.profile-image,
+.user-avatar,
+img[src*="avatar"],
+img[src*="profile"] {
+  overflow: hidden !important;
+  @apply rounded-full;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+/* Remove scrollbars from any image containers */
+div[class*="avatar"],
+div[class*="profile"],
+.image-container,
+.avatar-wrapper {
+  overflow: hidden !important;
+  @apply rounded-full;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== USER LIST ITEM LAYOUT FIXES ===== */
+
+/* Ensure proper layout for user items */
+.user-list-item {
+  @apply flex items-center p-3 mx-2 my-1 rounded-lg text-discord-text cursor-pointer transition-colors;
+  @apply hover:bg-discord-hover;
+  min-height: 56px;
+  gap: 12px;
+  box-sizing: border-box;
+  width: calc(100% - 16px); /* Account for margins */
+}
+
+.user-list-item.selected {
+  @apply bg-discord-selected;
+}
+
+/* User text content */
+.user-info,
+.user-list-item > div:not([class*="avatar"]):not([class*="profile"]) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.user-name {
+  @apply text-discord-text font-medium;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.user-status {
+  @apply text-xs text-gray-500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* ===== ONLINE USERS SECTION ===== */
+
+/* Header styling */
+.group-header,
+.section-header {
+  @apply px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-discord-dark;
+  @apply sticky top-0 z-20;
+  border-bottom: 1px solid rgba(64, 68, 75, 0.3);
+  flex-shrink: 0;
+  margin: 0;
+}
+
+/* ===== PREVENT SIDEBAR CUTOFF ===== */
+
+/* Ensure main container doesn't cut sidebar */
+.chat-app-container {
+  @apply h-screen w-screen overflow-hidden flex bg-discord-dark text-white;
+  position: relative;
+}
+
+/* Make sure sidebar is always fully visible */
+.chat-main-area {
+  @apply flex-1 h-screen overflow-hidden flex flex-col bg-discord-secondary;
+  min-width: 0;
+  width: calc(100vw - 280px); /* Exact width calculation */
+}
+
+/* ===== REMOVE ALL UNWANTED SCROLLBARS ===== */
+
+/* Force remove scrollbars from specific elements */
+.chat-sidebar *::-webkit-scrollbar {
+  width: 0px !important;
+  background: transparent !important;
+}
+
+.chat-sidebar img::-webkit-scrollbar,
+.user-list-item *::-webkit-scrollbar,
+[class*="avatar"]::-webkit-scrollbar,
+[class*="profile"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Only allow scrollbar on the main sidebar content */
+.chat-sidebar-content::-webkit-scrollbar {
+  width: 6px;
+  display: block;
+}
+
+.chat-sidebar-content::-webkit-scrollbar-track {
+  background: #2f3136;
+}
+
+.chat-sidebar-content::-webkit-scrollbar-thumb {
+  background: #40444b;
+  border-radius: 3px;
+}
+
+.chat-sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: #32353b;
+}
+
+/* ===== ADDITIONAL SAFETY MEASURES ===== */
+
+/* Prevent any element from extending beyond sidebar */
+.chat-sidebar *,
+.chat-sidebar-content * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Ensure proper spacing and no overflow */
+.chat-sidebar {
+  padding: 0;
+  margin: 0;
+  border-right: 1px solid #40444b;
+}
+
+/* Force round profile images */
+.user-list-item img,
+.user-list-item [class*="avatar"],
+.user-list-item [class*="profile"] {
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  background-clip: padding-box !important;
+}
