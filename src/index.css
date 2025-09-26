@@ -91,34 +91,49 @@
   
   /* Main application container */
   .chat-app-container {
-    @apply h-screen w-screen overflow-hidden flex bg-discord-dark text-white;
+    display: flex !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    @apply overflow-hidden bg-discord-dark text-white;
+    position: relative !important;
   }
 
-  /* Left sidebar - FIXED WIDTH */
+  /* Left sidebar - PROPERLY FIXED */
   .chat-sidebar {
     width: 280px !important;
     min-width: 280px !important;
     max-width: 280px !important;
-    @apply h-screen overflow-hidden bg-discord-dark border-r border-discord-border flex flex-col;
-    flex-shrink: 0 !important;
-    position: relative;
+    flex: 0 0 280px !important;
+    @apply h-screen bg-discord-dark border-r border-discord-border flex flex-col;
+    position: relative !important;
+    z-index: 100 !important;
+    overflow: visible !important;
   }
 
-  /* Sidebar content with scrolling */
+  /* Sidebar content with proper overflow for dropdowns */
   .chat-sidebar-content {
-    @apply h-full overflow-y-auto overflow-x-hidden bg-discord-dark;
+    @apply h-full bg-discord-dark;
+    overflow-y: scroll !important;
+    overflow-x: visible !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
-  /* Main chat area - CALCULATED WIDTH */
+  /* Main chat area - PROPERLY CALCULATED */
   .chat-main-area {
-    width: calc(100vw - 280px) !important;
+    flex: 1 !important;
+    width: calc(100% - 280px) !important;
     @apply h-screen overflow-hidden flex flex-col bg-discord-secondary;
-    min-width: 0;
+    min-width: 0 !important;
+    position: relative !important;
   }
 
   /* Chat messages container */
   .chat-messages-container {
-    @apply flex-1 overflow-y-auto overflow-x-hidden bg-discord-secondary;
+    @apply flex-1 bg-discord-secondary;
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
     min-height: 0;
   }
 
@@ -128,10 +143,17 @@
     min-height: 68px;
   }
 
-  /* User list items */
+  /* User list items - PROPERLY SIZED */
   .user-list-item {
-    @apply p-2 mx-2 my-1 rounded text-discord-text cursor-pointer transition-colors;
+    width: calc(100% - 16px) !important;
+    margin: 4px 8px !important;
+    padding: 8px !important;
+    @apply rounded text-discord-text cursor-pointer transition-colors;
     @apply hover:bg-discord-hover;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    position: relative !important;
   }
 
   .user-list-item.selected {
@@ -267,41 +289,6 @@ img[src*="profile"] {
   -ms-overflow-style: none !important;
 }
 
-/* ===== SCROLLBAR STYLING FOR MAIN AREAS ONLY ===== */
-.chat-sidebar-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-sidebar-content::-webkit-scrollbar-track {
-  background: #2f3136;
-}
-
-.chat-sidebar-content::-webkit-scrollbar-thumb {
-  background: #40444b;
-  border-radius: 3px;
-}
-
-.chat-sidebar-content::-webkit-scrollbar-thumb:hover {
-  background: #32353b;
-}
-
-.chat-messages-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-messages-container::-webkit-scrollbar-track {
-  background: #36393f;
-}
-
-.chat-messages-container::-webkit-scrollbar-thumb {
-  background: #40444b;
-  border-radius: 3px;
-}
-
-.chat-messages-container::-webkit-scrollbar-thumb:hover {
-  background: #32353b;
-}
-
 /* ===== MOBILE FIXES ===== */
 @media (max-width: 768px) {
   .message-bubble {
@@ -333,7 +320,8 @@ img[src*="profile"] {
 
   .mobile-messages-container {
     flex: 1;
-    overflow-y: auto;
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
     padding: 16px 12px 120px 12px;
     -webkit-overflow-scrolling: touch;
     background-color: #36393f;
@@ -357,6 +345,7 @@ img[src*="profile"] {
     width: 240px !important;
     min-width: 240px !important;
     max-width: 240px !important;
+    flex: 0 0 240px !important;
   }
   
   input[type="text"], input[type="password"], textarea {
@@ -386,20 +375,6 @@ html, body, #root, * {
   overflow-x: hidden !important;
 }
 
-/* ===== ENSURE PROPER LAYOUT ===== */
-.chat-app-container {
-  position: relative;
-  z-index: 0;
-}
-
-.chat-sidebar {
-  z-index: 10;
-}
-
-.chat-main-area {
-  z-index: 0;
-}
-
 /* Force profile images to be round */
 .user-list-item img,
 [class*="avatar"],
@@ -408,9 +383,7 @@ html, body, #root, * {
   object-fit: cover !important;
 }
 
-/* ===== FINAL WORKING FIXES - ADD ONLY THIS TO THE END ===== */
-
-/* 1. COMPLETELY REMOVE ALL SCROLLBARS EVERYWHERE */
+/* ===== COMPLETE SCROLLBAR REMOVAL ===== */
 * {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
@@ -422,82 +395,89 @@ html, body, #root, * {
   height: 0 !important;
 }
 
-/* 2. FORCE SIDEBAR TO FULL WIDTH - NO SPLITTING */
-.chat-app-container {
-  display: flex !important;
-  width: 100vw !important;
-  height: 100vh !important;
+/* ===== SESSION DROPDOWN/MODAL VISIBILITY FIXES ===== */
+
+/* Ensure dropdowns appear above everything */
+[class*="dropdown"],
+[class*="modal"],
+[class*="popover"],
+[class*="menu"],
+.user-profile-dropdown,
+.profile-menu,
+.user-menu,
+.session-menu,
+.logout-menu {
+  position: absolute !important;
+  top: 100% !important;
+  right: 0 !important;
+  z-index: 99999 !important;
+  background: #36393f !important;
+  border: 1px solid #40444b !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+  min-width: 200px !important;
+  max-width: 250px !important;
+  overflow: visible !important;
 }
 
-.chat-sidebar {
-  width: 280px !important;
-  min-width: 280px !important;
-  max-width: 280px !important;
-  flex: none !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-}
-
-.chat-main-area {
-  flex: 1 !important;
-  width: auto !important;
-  min-width: 0 !important;
-}
-
-/* 3. FORCE CONTENT SCROLLING WHERE NEEDED */
-.chat-sidebar-content {
-  overflow-y: scroll !important;
-  overflow-x: hidden !important;
-}
-
-.chat-messages-container {
-  overflow-y: scroll !important;
-  overflow-x: hidden !important;
-}
-
-.mobile-messages-container {
-  overflow-y: scroll !important;
-  overflow-x: hidden !important;
-}
-
-/* ===== OPTION 1: FORCE FULL SIDEBAR WIDTH (280px) ===== */
-/* Add this to end of your CSS if you want full 280px sidebar */
-
-.chat-app-container {
-  display: flex !important;
-  width: 100vw !important;
-  height: 100vh !important;
+/* Fix parent containers to allow dropdowns */
+.user-profile-container,
+.profile-button-container,
+.user-info-container,
+.header-user-section {
   position: relative !important;
+  overflow: visible !important;
+  z-index: 1000 !important;
 }
 
-.chat-sidebar {
-  width: 280px !important;
-  min-width: 280px !important;
-  max-width: 280px !important;
-  flex: 0 0 280px !important;
-  position: relative !important;
-  z-index: 10 !important;
-}
-
-.chat-main-area {
-  flex: 1 !important;
-  width: calc(100% - 280px) !important;
-  min-width: 0 !important;
-  position: relative !important;
-}
-
-/* Force content to fit properly */
-.chat-sidebar-content {
+/* Ensure dropdown items are properly styled and clickable */
+.dropdown-item,
+.menu-item,
+[class*="logout"],
+[class*="session"],
+[class*="signout"] {
+  display: block !important;
   width: 100% !important;
-  padding: 0 !important;
-  margin: 0 !important;
+  padding: 12px 16px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s !important;
+  background: transparent !important;
+  border: none !important;
+  text-align: left !important;
+  color: #b9bbbe !important;
+  font-size: 14px !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 100000 !important;
 }
 
-.user-list-item {
-  width: calc(100% - 16px) !important;
-  margin: 4px 8px !important;
-  padding: 8px !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+.dropdown-item:hover,
+.menu-item:hover,
+[class*="logout"]:hover,
+[class*="session"]:hover,
+[class*="signout"]:hover {
+  background-color: #32353b !important;
+  color: #ffffff !important;
+}
+
+/* Force sidebar to not clip dropdowns */
+.chat-sidebar {
+  overflow: visible !important;
+}
+
+.chat-sidebar-content {
+  overflow-y: scroll !important;
+  overflow-x: visible !important;
+}
+
+/* Ensure any overlay or backdrop doesn't interfere */
+.dropdown-backdrop,
+.modal-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 99998 !important;
+  background: transparent !important;
 }
