@@ -489,3 +489,138 @@ img[src*="profile"]::-webkit-scrollbar {
   border-radius: 50% !important;
   object-fit: cover !important;
 }
+
+
+/* ===== ACTUAL FIXES - ADD THESE TO THE END OF YOUR index.css ===== */
+
+/* 1. FIX SIDEBAR CUTOFF - Force full width visibility */
+.chat-sidebar {
+  width: 280px !important;
+  min-width: 280px !important;
+  max-width: 280px !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+/* Ensure main chat area doesn't overlap sidebar */
+.chat-main-area {
+  width: calc(100vw - 280px) !important;
+  margin-left: 0 !important;
+}
+
+/* 2. COMPLETELY REMOVE SCROLLBARS FROM ALL USER PROFILE IMAGES */
+.user-list-item img,
+.user-list-item div img,
+.user-list-item [class*="avatar"],
+.user-list-item [class*="profile"],
+.user-list-item *[class*="avatar"],
+.user-list-item *[class*="profile"],
+img[alt*="avatar"],
+img[alt*="profile"],
+div[class*="avatar"],
+div[class*="profile"] {
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* Force remove webkit scrollbars */
+.user-list-item img::-webkit-scrollbar,
+.user-list-item div img::-webkit-scrollbar,
+.user-list-item [class*="avatar"]::-webkit-scrollbar,
+.user-list-item [class*="profile"]::-webkit-scrollbar,
+.user-list-item *[class*="avatar"]::-webkit-scrollbar,
+.user-list-item *[class*="profile"]::-webkit-scrollbar,
+img[alt*="avatar"]::-webkit-scrollbar,
+img[alt*="profile"]::-webkit-scrollbar,
+div[class*="avatar"]::-webkit-scrollbar,
+div[class*="profile"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+/* Remove scrollbars from any container that might have profile images */
+.user-list-item > div::-webkit-scrollbar,
+.user-list-item > div > div::-webkit-scrollbar,
+.user-list-item > div > div > img::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* 3. FIX MOBILE FIRST MESSAGE VISIBILITY */
+.mobile-messages-container {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding-top: 20px !important; /* Add padding at top */
+  padding-bottom: 120px !important;
+  margin-top: 0 !important;
+  -webkit-overflow-scrolling: touch !important;
+  background-color: #36393f !important;
+  min-height: 0 !important;
+}
+
+/* Ensure first message is visible on mobile */
+.mobile-messages-container > div:first-child,
+.mobile-messages-container > *:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Fix mobile chat area to not cut off messages */
+.mobile-chat-area {
+  height: 100vh !important;
+  height: 100dvh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative !important;
+  background-color: #36393f !important;
+  overflow: hidden !important;
+  padding-top: 0 !important;
+}
+
+/* Ensure mobile input doesn't overlap messages */
+.mobile-input-container {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  background: rgba(54, 57, 63, 0.98) !important;
+  backdrop-filter: blur(15px) !important;
+  border-top: 1px solid #40444b !important;
+  z-index: 1000 !important;
+  padding: 12px !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Additional mobile message container safety */
+@media (max-width: 768px) {
+  .mobile-messages-container {
+    padding-top: 16px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-bottom: 120px !important;
+  }
+  
+  /* Ensure first message visibility */
+  .mobile-messages-container .message-bubble:first-child,
+  .mobile-messages-container > div:first-child .message-bubble {
+    margin-top: 0 !important;
+  }
+}
+
+/* Force sidebar visibility on desktop */
+@media (min-width: 769px) {
+  .chat-sidebar {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  .chat-app-container {
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
+}
