@@ -6,6 +6,9 @@ interface MessageInputProps {
   onSend: () => void;
   onTyping: () => void;
   placeholder: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
+  isMobile?: boolean;
 }
 
 export function MessageInput({ 
@@ -13,7 +16,10 @@ export function MessageInput({
   setMessage, 
   onSend, 
   onTyping, 
-  placeholder 
+  placeholder,
+  onFocus,
+  onBlur,
+  isMobile = false
 }: MessageInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -30,15 +36,27 @@ export function MessageInput({
     onTyping();
   };
 
+  const handleFocus = () => {
+    setIsFocused(true);
+    onFocus?.();
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    onBlur?.();
+  };
+
   useEffect(() => {
     // Auto-focus on mobile when component mounts
-    if (window.innerWidth < 768) {
+    if (isMobile) {
       inputRef.current?.focus();
     }
-  }, []);
+  }, [isMobile]);
 
   return (
-    <div className="p-4 border-t border-discord-border bg-discord-secondary/50 backdrop-blur-sm">
+    <div className={`p-4 border-t border-discord-border bg-discord-secondary/50 backdrop-blur-sm ${
+      isMobile ? 'safe-area-bottom' : ''
+    }`}>
       <div className="flex items-center space-x-3">
         {/* Input field */}
         <div className={`flex-1 relative transition-all duration-300 ${isFocused ? 'transform scale-[1.02]' : ''}`}>
@@ -48,8 +66,8 @@ export function MessageInput({
             value={message}
             onChange={handleInputChange}
             onKeyPress={handleKeyPress}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             placeholder={placeholder}
             className={`w-full px-4 py-3 bg-discord-dark border-2 rounded-full text-white placeholder-discord-text focus:outline-none transition-all duration-300 ${
               isFocused 
@@ -57,6 +75,7 @@ export function MessageInput({
                 : 'border-discord-border hover:border-discord-text'
             }`}
             maxLength={2000}
+            style={{ fontSize: isMobile ? '16px' : '14px' }} // Prevent zoom on iOS
           />
           
           {/* Character count */}

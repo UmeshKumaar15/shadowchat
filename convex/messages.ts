@@ -140,6 +140,48 @@ export const markMessagesSeen = mutation({
   },
 });
 
+// Get unread message count for a chat
+export const getUnreadCount = query({
+  args: {
+    chatId: v.string(),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const messages = await ctx.db
+      .query("messages")
+      .filter((q) => {
+        if (args.chatId.startsWith("private_")) {
+          const [, userId1, userId2] = args.chatId.split("_");
+          return q.and(
+            q.eq(q.field("isPrivate"), true),
+            q.or(
+              q.and(
+                q.eq(q.field("senderId"), userId1 as any),
+                q.eq(q.field("recipientId"), userId2 as any)
+              ),
+              q.and(
+                q.eq(q.field("senderId"), userId2 as any),
+                q.eq(q.field("recipientId"), userId1 as any)
+              )
+            ),
+            q.neq(q.field("senderId"), args.userId),
+            q.neq(q.field("status"), "seen")
+          );
+        } else {
+          const groupId = args.chatId.replace("group_", "");
+          return q.and(
+            q.eq(q.field("groupId"), groupId as any),
+            q.neq(q.field("senderId"), args.userId),
+            q.neq(q.field("status"), "seen")
+          );
+        }
+      })
+      .collect();
+
+    return messages.length;
+  },
+});
+
 // Get messages for a private chat
 export const getPrivateMessages = query({
   args: {
@@ -207,7 +249,7 @@ export const getGroupMessages = query({
   },
 });
 
-// Get user's active chats
+// Get user's active chats with unread counts
 export const getActiveChats = query({
   args: {
     userId: v.id("users"),
@@ -221,12 +263,46 @@ export const getActiveChats = query({
 
     const chatsWithInfo = [];
     for (const chat of activeChats) {
+      // Get unread count
+      const unreadMessages = await ctx.db
+        .query("messages")
+        .filter((q) => {
+          if (chat.chatType === "private" && chat.otherUserId) {
+            return q.and(
+              q.eq(q.field("isPrivate"), true),
+              q.or(
+                q.and(
+                  q.eq(q.field("senderId"), args.userId),
+                  q.eq(q.field("recipientId"), chat.otherUserId)
+                ),
+                q.and(
+                  q.eq(q.field("senderId"), chat.otherUserId),
+                  q.eq(q.field("recipientId"), args.userId)
+                )
+              ),
+              q.neq(q.field("senderId"), args.userId),
+              q.neq(q.field("status"), "seen")
+            );
+          } else if (chat.chatType === "group" && chat.groupId) {
+            return q.and(
+              q.eq(q.field("groupId"), chat.groupId),
+              q.neq(q.field("senderId"), args.userId),
+              q.neq(q.field("status"), "seen")
+            );
+          }
+          return q.eq(q.field("_id"), "invalid" as any); // Return no results
+        })
+        .collect();
+
+      const unreadCount = unreadMessages.length;
+
       if (chat.chatType === "private" && chat.otherUserId) {
         const otherUser = await ctx.db.get(chat.otherUserId);
         if (otherUser) {
           chatsWithInfo.push({
             ...chat,
             otherUser,
+            unreadCount,
           });
         }
       } else if (chat.chatType === "group" && chat.groupId) {
@@ -235,6 +311,7 @@ export const getActiveChats = query({
           chatsWithInfo.push({
             ...chat,
             group,
+            unreadCount,
           });
         }
       }

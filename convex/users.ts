@@ -92,6 +92,73 @@ export const updateOnlineStatus = mutation({
   },
 });
 
+// Logout user - clean up all user data
+export const logoutUser = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    // Clean up user's active chats
+    const activeChats = await ctx.db
+      .query("activeChats")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    
+    for (const chat of activeChats) {
+      await ctx.db.delete(chat._id);
+    }
+    
+    // Clean up user's typing indicators
+    const typingIndicators = await ctx.db
+      .query("typingIndicators")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .collect();
+    
+    for (const indicator of typingIndicators) {
+      await ctx.db.delete(indicator._id);
+    }
+    
+    // Clean up user's private messages (keep group messages)
+    const privateMessages = await ctx.db
+      .query("messages")
+      .filter((q) => 
+        q.and(
+          q.eq(q.field("isPrivate"), true),
+          q.or(
+            q.eq(q.field("senderId"), args.userId),
+            q.eq(q.field("recipientId"), args.userId)
+          )
+        )
+      )
+      .collect();
+    
+    for (const message of privateMessages) {
+      await ctx.db.delete(message._id);
+    }
+    
+    // Remove user from all groups
+    const groupMemberships = await ctx.db
+      .query("groupMembers")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    
+    for (const membership of groupMemberships) {
+      await ctx.db.delete(membership._id);
+      
+      // Update group member count
+      const group = await ctx.db.get(membership.groupId);
+      if (group) {
+        await ctx.db.patch(membership.groupId, {
+          memberCount: Math.max(0, group.memberCount - 1),
+        });
+      }
+    }
+    
+    // Finally, delete the user
+    await ctx.db.delete(args.userId);
+  },
+});
+
 // Clean up offline users (remove users who have been offline for too long)
 export const cleanupOfflineUsers = internalMutation({
   args: {},

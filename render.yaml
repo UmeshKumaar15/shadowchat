@@ -1,0 +1,37 @@
+# render.yaml - Place this in your project root
+# This will automatically configure your Render deployment
+
+services:
+  - type: web
+    name: hushgram-anonymous-chat
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "18"
+      - key: VITE_CONVEX_URL
+        value: YOUR_CONVEX_DEPLOYMENT_URL_HERE  # REPLACE THIS!
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-XSS-Protection
+        value: "1; mode=block"
+      - path: /assets/*
+        name: Cache-Control
+        value: max-age=31536000, immutable
+      - path: "*.js"
+        name: Cache-Control
+        value: max-age=31536000, immutable
+      - path: "*.css"
+        name: Cache-Control
+        value: max-age=31536000, immutable

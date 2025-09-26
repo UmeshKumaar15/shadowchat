@@ -38,6 +38,14 @@ export function MessageList({ messages, currentUserId, chatId }: MessageListProp
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    // Scroll to bottom when component mounts or messages change
+    const timer = setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [messages.length]);
+
   const formatTime = (timestamp: number) => {
     const now = new Date();
     const messageTime = new Date(timestamp);

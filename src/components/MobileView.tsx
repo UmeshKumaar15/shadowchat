@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { Sidebar } from "./Sidebar";
 import { ChatArea } from "./ChatArea";
@@ -24,6 +26,39 @@ export function MobileView({
   showChatList, 
   setShowChatList 
 }: MobileViewProps) {
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // Get other user info for private chats to check online status
+  const otherUser = useQuery(
+    api.users.getCurrentUser,
+    selectedChat?.type === "private" && selectedChat.otherUserId
+      ? { sessionId: `user_${selectedChat.otherUserId}` }
+      : "skip"
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      // Detect keyboard on mobile by checking viewport height change
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      const windowHeight = window.screen.height;
+      const heightDiff = windowHeight - viewportHeight;
+      
+      if (heightDiff > 150) { // Keyboard is likely open
+        setKeyboardHeight(heightDiff);
+      } else {
+        setKeyboardHeight(0);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+      return () => window.visualViewport?.removeEventListener('resize', handleResize);
+    } else {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
+
   if (showChatList) {
     return (
       <div className="mobile-chat-container bg-gradient-to-br from-discord-dark via-discord-secondary to-discord-dark text-white">
@@ -42,7 +77,10 @@ export function MobileView({
   }
 
   return (
-    <div className="mobile-chat-container bg-discord-dark text-white">
+    <div 
+      className="mobile-chat-container bg-discord-dark text-white"
+      style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px' }}
+    >
       {/* Mobile chat header with back button */}
       {selectedChat && (
         <div className="sticky top-0 z-10 bg-discord-secondary/90 backdrop-blur-md border-b border-discord-border flex-shrink-0">
@@ -66,15 +104,27 @@ export function MobileView({
                   {selectedChat.type === "private" ? selectedChat.name[0]?.toUpperCase() : "#"}
                 </div>
                 {selectedChat.type === "private" && (
-                  <div className="status-indicator bg-green-500">
-                    <div className="pulse-ring"></div>
+                  <div className={`status-indicator ${
+                    otherUser?.isOnline && (Date.now() - (otherUser?.lastSeen || 0)) < 60000 
+                      ? 'bg-green-500' 
+                      : 'bg-gray-500'
+                  }`}>
+                    {otherUser?.isOnline && (Date.now() - (otherUser?.lastSeen || 0)) < 60000 && (
+                      <div className="pulse-ring"></div>
+                    )}
                   </div>
                 )}
               </div>
               <div>
                 <h2 className="font-semibold text-white">{selectedChat.name}</h2>
                 <p className="text-sm text-discord-text">
-                  {selectedChat.type === "private" ? "Online" : "Group chat"}
+                  {selectedChat.type === "private" 
+                    ? (otherUser?.isOnline && (Date.now() - (otherUser?.lastSeen || 0)) < 60000 
+                        ? "Online" 
+                        : "Offline"
+                      )
+                    : "Group chat"
+                  }
                 </p>
               </div>
             </div>
@@ -83,7 +133,7 @@ export function MobileView({
       )}
       
       {/* Chat Area - takes remaining space */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 mobile-chat-area">
         <ChatArea
           currentUserId={currentUserId}
           selectedChat={selectedChat}
@@ -93,6 +143,8 @@ export function MobileView({
               setShowChatList(true);
             }
           }}
+          isMobile={true}
+          keyboardHeight={keyboardHeight}
         />
       </div>
 

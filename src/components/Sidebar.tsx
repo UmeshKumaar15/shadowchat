@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { UserList } from "./UserList";
 import { GroupList } from "./GroupList";
 import { ActiveChats } from "./ActiveChats";
 import { CreateGroupModal } from "./CreateGroupModal";
+import { UserProfileDropdown } from "./UserProfileDropdown";
 
 interface SidebarProps {
   currentUserId: Id<"users">;
@@ -22,16 +23,31 @@ interface SidebarProps {
 export function Sidebar({ currentUserId, selectedChat, setSelectedChat }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<"chats" | "users" | "groups">("chats");
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   const currentUser = useQuery(api.users.getCurrentUser, 
     currentUserId ? { sessionId: localStorage.getItem("chat-session-id") || "" } : "skip"
   );
 
+  const activeChats = useQuery(api.messages.getActiveChats, 
+    currentUserId ? { userId: currentUserId } : "skip"
+  );
+
+  // Calculate total unread count
+  const totalUnreadCount = activeChats?.reduce((total, chat) => total + (chat.unreadCount || 0), 0) || 0;
+
   const tabs = [
-    { id: "chats", label: "Chats", icon: "💬" },
+    { id: "chats", label: "Chats", icon: "💬", unreadCount: totalUnreadCount },
     { id: "users", label: "Users", icon: "👥" },
     { id: "groups", label: "Groups", icon: "🏢" },
   ];
+
+  const handleLogout = () => {
+    // Clear session storage
+    localStorage.removeItem("chat-session-id");
+    // Reload the page to reset the app state
+    window.location.reload();
+  };
 
   return (
     <div className="w-full md:w-80 bg-discord-secondary/80 backdrop-blur-md border-r border-discord-border flex flex-col shadow-xl h-full">
@@ -41,9 +57,26 @@ export function Sidebar({ currentUserId, selectedChat, setSelectedChat }: Sideba
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             Hushgram
           </h1>
-          <div className="flex items-center space-x-2 glass-effect px-3 py-1 rounded-full">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-sm text-white font-medium">{currentUser?.username}</span>
+          <div className="relative">
+            <button
+              onClick={() => setShowUserDropdown(!showUserDropdown)}
+              className="flex items-center space-x-2 glass-effect px-3 py-1 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-white font-medium">{currentUser?.username}</span>
+              <svg className={`w-4 h-4 text-white transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {/* User Dropdown */}
+            {showUserDropdown && (
+              <UserProfileDropdown
+                user={currentUser}
+                onLogout={handleLogout}
+                onClose={() => setShowUserDropdown(false)}
+              />
+            )}
           </div>
         </div>
 
@@ -53,7 +86,7 @@ export function Sidebar({ currentUserId, selectedChat, setSelectedChat }: Sideba
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center space-x-2 ${
+              className={`relative flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center space-x-2 ${
                 activeTab === tab.id
                   ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-glow transform scale-105"
                   : "text-discord-text hover:text-white hover:bg-discord-hover/50"
@@ -61,6 +94,12 @@ export function Sidebar({ currentUserId, selectedChat, setSelectedChat }: Sideba
             >
               <span>{tab.icon}</span>
               <span>{tab.label}</span>
+              {/* Unread count badge */}
+              {tab.id === "chats" && tab.unreadCount && tab.unreadCount > 0 && activeTab !== "chats" && (
+                <div className="absolute -top-1 -right-1 bg-discord-danger text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
+                  {tab.unreadCount > 99 ? "99+" : tab.unreadCount}
+                </div>
+              )}
             </button>
           ))}
         </div>

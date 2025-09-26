@@ -121,7 +121,7 @@ export default function App() {
 
   if (isMobile) {
     return (
-      <>
+      <div className="mobile-chat-container">
         <MobileView
           currentUserId={currentUserId}
           selectedChat={selectedChat}
@@ -140,23 +140,40 @@ export default function App() {
             },
           }}
         />
-      </>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-discord-dark via-discord-secondary to-discord-dark text-white flex">
-      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 pointer-events-none"></div>
-      <Sidebar
-        currentUserId={currentUserId}
-        selectedChat={selectedChat}
-        setSelectedChat={setSelectedChat}
-      />
-      <ChatArea
-        currentUserId={currentUserId}
-        selectedChat={selectedChat}
-        setSelectedChat={setSelectedChat}
-      />
+    <>
+      {/* Background gradient overlay - positioned absolutely to not interfere with layout */}
+      <div className="fixed inset-0 bg-gradient-to-br from-discord-dark via-discord-secondary to-discord-dark pointer-events-none z-0"></div>
+      <div className="fixed inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 pointer-events-none z-0"></div>
+      
+      {/* Main chat container using the new overflow-fixed layout classes */}
+      <div className="chat-app-container">
+        {/* Sidebar with fixed layout and proper overflow handling */}
+        <div className="chat-sidebar">
+          <div className="chat-sidebar-content">
+            <Sidebar
+              currentUserId={currentUserId}
+              selectedChat={selectedChat}
+              setSelectedChat={setSelectedChat}
+            />
+          </div>
+        </div>
+
+        {/* Main chat area with proper overflow handling */}
+        <div className="chat-main-area">
+          <ChatArea
+            currentUserId={currentUserId}
+            selectedChat={selectedChat}
+            setSelectedChat={setSelectedChat}
+          />
+        </div>
+      </div>
+
+      {/* Toast notifications */}
       <Toaster 
         theme="dark" 
         position="top-center"
@@ -168,6 +185,6 @@ export default function App() {
           },
         }}
       />
-    </div>
+    </>
   );
 }
