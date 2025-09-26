@@ -87,73 +87,61 @@
     animation: bounceIn 0.3s ease-out;
   }
 
-  /* ===== CHAT LAYOUT OVERFLOW FIXES ===== */
+  /* ===== CHAT LAYOUT FIXES ===== */
   
   /* Main application container */
   .chat-app-container {
     @apply h-screen w-screen overflow-hidden flex bg-discord-dark text-white;
   }
 
-  /* Left sidebar - fixed width, no overflow */
+  /* Left sidebar - FIXED WIDTH */
   .chat-sidebar {
-    @apply w-[280px] min-w-[280px] max-w-[280px] h-screen overflow-hidden bg-discord-dark border-r border-discord-border flex flex-col relative;
-    flex-shrink: 0;
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+    @apply h-screen overflow-hidden bg-discord-dark border-r border-discord-border flex flex-col;
+    flex-shrink: 0 !important;
+    position: relative;
   }
 
-  /* Sidebar content with proper scrolling */
+  /* Sidebar content with scrolling */
   .chat-sidebar-content {
     @apply h-full overflow-y-auto overflow-x-hidden bg-discord-dark;
-    scrollbar-width: thin;
-    scrollbar-color: #40444b #2f3136;
   }
 
-  /* Main chat area */
+  /* Main chat area - CALCULATED WIDTH */
   .chat-main-area {
-    @apply flex-1 h-screen overflow-hidden flex flex-col bg-discord-secondary;
-    min-width: 0; /* Allow flexbox to shrink */
+    width: calc(100vw - 280px) !important;
+    @apply h-screen overflow-hidden flex flex-col bg-discord-secondary;
+    min-width: 0;
   }
 
   /* Chat messages container */
   .chat-messages-container {
-    @apply flex-1 overflow-y-auto overflow-x-hidden bg-discord-secondary p-0;
-    min-height: 0; /* Allow flexbox to shrink */
+    @apply flex-1 overflow-y-auto overflow-x-hidden bg-discord-secondary;
+    min-height: 0;
   }
 
-  /* Chat input area - fixed at bottom */
+  /* Chat input area */
   .chat-input-area {
     @apply bg-discord-secondary border-t border-discord-border p-4 flex-shrink-0;
-    min-height: 68px; /* Minimum height for input */
+    min-height: 68px;
   }
 
-  /* User list items in sidebar */
+  /* User list items */
   .user-list-item {
     @apply p-2 mx-2 my-1 rounded text-discord-text cursor-pointer transition-colors;
-    @apply hover:bg-discord-hover whitespace-nowrap overflow-hidden;
-    text-overflow: ellipsis; /* Show ... for long names */
+    @apply hover:bg-discord-hover;
   }
 
   .user-list-item.selected {
     @apply bg-discord-selected;
   }
 
-  /* Group headers in sidebar */
+  /* Group headers */
   .group-header {
     @apply px-4 pt-4 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-discord-dark;
     @apply sticky top-0 z-10;
-  }
-
-  /* Overflow prevention classes */
-  .overflow-fix {
-    @apply bg-discord-dark h-screen overflow-hidden;
-  }
-
-  .main-content-fix {
-    @apply bg-discord-secondary h-screen overflow-hidden;
-  }
-
-  /* Ensure no white backgrounds bleed through */
-  .no-white-bg * {
-    background-color: inherit;
   }
 }
 
@@ -231,24 +219,55 @@
   }
 }
 
-/* ===== SCROLLBAR STYLING ===== */
-::-webkit-scrollbar {
-  width: 8px;
+/* ===== FUNDAMENTAL SETUP ===== */
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #2f3136;
 }
 
-::-webkit-scrollbar-track {
-  @apply bg-discord-dark;
+#root {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: #2f3136;
+  display: flex;
+  flex-direction: column;
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-discord-border rounded;
+* {
+  box-sizing: border-box;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-discord-hover;
+/* ===== REMOVE ALL SCROLLBARS FROM PROFILE IMAGES ===== */
+.user-list-item *::-webkit-scrollbar,
+.user-list-item img::-webkit-scrollbar,
+.user-list-item div::-webkit-scrollbar,
+[class*="avatar"]::-webkit-scrollbar,
+[class*="profile"]::-webkit-scrollbar,
+img[src*="avatar"]::-webkit-scrollbar,
+img[src*="profile"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-/* Specific scrollbar styling for sidebar */
+.user-list-item *,
+.user-list-item img,
+.user-list-item div,
+[class*="avatar"],
+[class*="profile"],
+img[src*="avatar"],
+img[src*="profile"] {
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* ===== SCROLLBAR STYLING FOR MAIN AREAS ONLY ===== */
 .chat-sidebar-content::-webkit-scrollbar {
   width: 6px;
 }
@@ -266,52 +285,32 @@
   background: #32353b;
 }
 
-/* ===== FUNDAMENTAL OVERFLOW FIXES ===== */
-
-/* Prevent any body-level overflow and ensure full height */
-html, body {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden; /* Critical: prevent any page-level scrolling */
-  background-color: #2f3136; /* Ensure no white background shows */
+.chat-messages-container::-webkit-scrollbar {
+  width: 6px;
 }
 
-/* Root container fixes */
-#root {
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  background-color: #2f3136; /* Match discord-dark color */
-  display: flex;
-  flex-direction: column;
+.chat-messages-container::-webkit-scrollbar-track {
+  background: #36393f;
 }
 
-/* Remove default margins and paddings that can cause white space */
-* {
-  box-sizing: border-box;
+.chat-messages-container::-webkit-scrollbar-thumb {
+  background: #40444b;
+  border-radius: 3px;
 }
 
-ul, li, div {
-  margin: 0;
-  padding: 0;
+.chat-messages-container::-webkit-scrollbar-thumb:hover {
+  background: #32353b;
 }
 
-ul {
-  list-style: none;
-}
-
-/* ===== MOBILE OPTIMIZATIONS ===== */
+/* ===== MOBILE FIXES ===== */
 @media (max-width: 768px) {
   .message-bubble {
     @apply max-w-[280px];
   }
   
-  /* Mobile chat container fixes */
   .mobile-chat-container {
     height: 100vh;
-    height: 100dvh; /* Dynamic viewport height for better mobile support */
+    height: 100dvh;
     width: 100vw;
     position: fixed;
     top: 0;
@@ -322,7 +321,6 @@ ul {
     background-color: #2f3136;
   }
 
-  /* Mobile chat area specific fixes */
   .mobile-chat-area {
     height: 100vh;
     height: 100dvh;
@@ -336,9 +334,8 @@ ul {
   .mobile-messages-container {
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 120px; /* Increased space for input */
+    padding: 16px 12px 120px 12px;
     -webkit-overflow-scrolling: touch;
-    margin-bottom: 0;
     background-color: #36393f;
     min-height: 0;
   }
@@ -351,55 +348,32 @@ ul {
     background: rgba(54, 57, 63, 0.98);
     backdrop-filter: blur(15px);
     border-top: 1px solid #40444b;
-    z-index: 100;
-    padding: env(safe-area-inset-bottom, 0) 0 0 0;
+    z-index: 1000;
+    padding: 12px;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
   }
   
-  /* Mobile sidebar adjustments */
   .chat-sidebar {
-    @apply w-[240px] min-w-[240px] max-w-[240px];
+    width: 240px !important;
+    min-width: 240px !important;
+    max-width: 240px !important;
   }
   
-  .user-list-item {
-    @apply p-1.5 text-sm;
-  }
-  
-  .group-header {
-    @apply px-3 pt-3 pb-1.5 text-xs;
-  }
-  
-  /* Prevent zoom on input focus */
   input[type="text"], input[type="password"], textarea {
     font-size: 16px;
   }
-
-  /* Handle keyboard appearance */
-  .mobile-input-focused {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-  }
   
-  /* Better touch targets for mobile */
   button, .cursor-pointer {
     min-height: 44px;
     min-width: 44px;
   }
   
-  /* Fix mobile viewport height issues */
   html, body {
-    height: 100%;
-    overflow: hidden;
     position: fixed;
     width: 100%;
   }
   
   #root {
-    height: 100vh;
-    height: 100dvh;
     position: fixed;
     width: 100%;
     top: 0;
@@ -407,220 +381,29 @@ ul {
   }
 }
 
-/* ===== ADDITIONAL OVERFLOW PREVENTION ===== */
-
-/* Prevent horizontal scroll globally */
+/* ===== PREVENT HORIZONTAL SCROLL ===== */
 html, body, #root, * {
   overflow-x: hidden !important;
 }
 
-/* Ensure all containers maintain dark theme */
-.chat-app-container,
-.chat-app-container *,
-.chat-sidebar,
-.chat-sidebar *,
-.chat-main-area,
-.chat-main-area * {
-  /* Prevent any white backgrounds from showing */
-  box-sizing: border-box;
-}
-
-/* Fix for any remaining white space at edges */
-body::before,
-body::after,
-#root::before,
-#root::after {
-  content: '';
-  position: fixed;
-  background-color: #2f3136;
-  z-index: -1;
-}
-
-body::before {
-  top: -10px;
-  left: -10px;
-  right: -10px;
-  bottom: -10px;
-}
-
-/* Responsive layout fixes */
-@media (max-width: 640px) {
-  .chat-sidebar {
-    @apply w-[200px] min-w-[200px] max-w-[200px];
-  }
-}
-
-/* Fix for potential layout shift */
-.layout-stable {
-  contain: layout style paint;
-}
-
-/* Ensure proper stacking context */
+/* ===== ENSURE PROPER LAYOUT ===== */
 .chat-app-container {
   position: relative;
   z-index: 0;
 }
 
 .chat-sidebar {
-  z-index: 1;
+  z-index: 10;
 }
 
 .chat-main-area {
   z-index: 0;
 }
 
-/* ===== MINIMAL PROFILE IMAGE SCROLLBAR FIXES ONLY ===== */
-
-/* Remove scrollbars from profile images only - no layout changes */
-.user-list-item img::-webkit-scrollbar,
-.user-list-item [class*="avatar"]::-webkit-scrollbar,
-.user-list-item [class*="profile"]::-webkit-scrollbar,
-img[src*="avatar"]::-webkit-scrollbar,
-img[src*="profile"]::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-/* Ensure profile images are round */
+/* Force profile images to be round */
 .user-list-item img,
-.user-list-item [class*="avatar"],
-.user-list-item [class*="profile"] {
+[class*="avatar"],
+[class*="profile"] {
   border-radius: 50% !important;
   object-fit: cover !important;
-}
-
-
-/* ===== ACTUAL FIXES - ADD THESE TO THE END OF YOUR index.css ===== */
-
-/* 1. FIX SIDEBAR CUTOFF - Force full width visibility */
-.chat-sidebar {
-  width: 280px !important;
-  min-width: 280px !important;
-  max-width: 280px !important;
-  flex-shrink: 0 !important;
-  position: relative !important;
-  z-index: 100 !important;
-}
-
-/* Ensure main chat area doesn't overlap sidebar */
-.chat-main-area {
-  width: calc(100vw - 280px) !important;
-  margin-left: 0 !important;
-}
-
-/* 2. COMPLETELY REMOVE SCROLLBARS FROM ALL USER PROFILE IMAGES */
-.user-list-item img,
-.user-list-item div img,
-.user-list-item [class*="avatar"],
-.user-list-item [class*="profile"],
-.user-list-item *[class*="avatar"],
-.user-list-item *[class*="profile"],
-img[alt*="avatar"],
-img[alt*="profile"],
-div[class*="avatar"],
-div[class*="profile"] {
-  overflow: hidden !important;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-/* Force remove webkit scrollbars */
-.user-list-item img::-webkit-scrollbar,
-.user-list-item div img::-webkit-scrollbar,
-.user-list-item [class*="avatar"]::-webkit-scrollbar,
-.user-list-item [class*="profile"]::-webkit-scrollbar,
-.user-list-item *[class*="avatar"]::-webkit-scrollbar,
-.user-list-item *[class*="profile"]::-webkit-scrollbar,
-img[alt*="avatar"]::-webkit-scrollbar,
-img[alt*="profile"]::-webkit-scrollbar,
-div[class*="avatar"]::-webkit-scrollbar,
-div[class*="profile"]::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  background: transparent !important;
-}
-
-/* Remove scrollbars from any container that might have profile images */
-.user-list-item > div::-webkit-scrollbar,
-.user-list-item > div > div::-webkit-scrollbar,
-.user-list-item > div > div > img::-webkit-scrollbar {
-  display: none !important;
-}
-
-/* 3. FIX MOBILE FIRST MESSAGE VISIBILITY */
-.mobile-messages-container {
-  flex: 1 !important;
-  overflow-y: auto !important;
-  padding-top: 20px !important; /* Add padding at top */
-  padding-bottom: 120px !important;
-  margin-top: 0 !important;
-  -webkit-overflow-scrolling: touch !important;
-  background-color: #36393f !important;
-  min-height: 0 !important;
-}
-
-/* Ensure first message is visible on mobile */
-.mobile-messages-container > div:first-child,
-.mobile-messages-container > *:first-child {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-}
-
-/* Fix mobile chat area to not cut off messages */
-.mobile-chat-area {
-  height: 100vh !important;
-  height: 100dvh !important;
-  display: flex !important;
-  flex-direction: column !important;
-  position: relative !important;
-  background-color: #36393f !important;
-  overflow: hidden !important;
-  padding-top: 0 !important;
-}
-
-/* Ensure mobile input doesn't overlap messages */
-.mobile-input-container {
-  position: fixed !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  background: rgba(54, 57, 63, 0.98) !important;
-  backdrop-filter: blur(15px) !important;
-  border-top: 1px solid #40444b !important;
-  z-index: 1000 !important;
-  padding: 12px !important;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3) !important;
-}
-
-/* Additional mobile message container safety */
-@media (max-width: 768px) {
-  .mobile-messages-container {
-    padding-top: 16px !important;
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-    padding-bottom: 120px !important;
-  }
-  
-  /* Ensure first message visibility */
-  .mobile-messages-container .message-bubble:first-child,
-  .mobile-messages-container > div:first-child .message-bubble {
-    margin-top: 0 !important;
-  }
-}
-
-/* Force sidebar visibility on desktop */
-@media (min-width: 769px) {
-  .chat-sidebar {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-  
-  .chat-app-container {
-    width: 100vw !important;
-    height: 100vh !important;
-    overflow: hidden !important;
-  }
 }
