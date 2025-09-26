@@ -407,3 +407,55 @@ html, body, #root, * {
   border-radius: 50% !important;
   object-fit: cover !important;
 }
+
+/* ===== FINAL WORKING FIXES - ADD ONLY THIS TO THE END ===== */
+
+/* 1. COMPLETELY REMOVE ALL SCROLLBARS EVERYWHERE */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* 2. FORCE SIDEBAR TO FULL WIDTH - NO SPLITTING */
+.chat-app-container {
+  display: flex !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+.chat-sidebar {
+  width: 280px !important;
+  min-width: 280px !important;
+  max-width: 280px !important;
+  flex: none !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+}
+
+.chat-main-area {
+  flex: 1 !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+/* 3. FORCE CONTENT SCROLLING WHERE NEEDED */
+.chat-sidebar-content {
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+}
+
+.chat-messages-container {
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+}
+
+.mobile-messages-container {
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+}
